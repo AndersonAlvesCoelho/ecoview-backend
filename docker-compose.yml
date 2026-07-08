@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: development
+    container_name: ecoview_api_dev
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://postgres:16798577@ecoview_postgres:5432/ecoview_db
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      ecoview_postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ecoview_postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: ecoview_db_dev
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - ecoview_postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations/manual:/docker-entrypoint-initdb.d/manual
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  ecoview_postgres_data:

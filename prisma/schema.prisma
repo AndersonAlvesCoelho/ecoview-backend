@@ -1,0 +1,310 @@
+// =============================================================
+// PNIG — prisma/schema.prisma — Prisma 7
+// Extensões PostGIS gerenciadas via migration manual (0001)
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================
+// ENUMs
+// =============================================================
+
+enum DatasetStatus {
+  draft
+  published
+  deprecated
+  archived
+
+  @@map("dataset_status")
+}
+
+enum GeometryType {
+  POINT
+  MULTIPOINT
+  LINESTRING
+  MULTILINESTRING
+  POLYGON
+  MULTIPOLYGON
+  GEOMETRYCOLLECTION
+  RASTER
+
+  @@map("geometry_type")
+}
+
+enum UpdateFrequency {
+  realtime
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+  irregular
+  static
+
+  @@map("update_frequency")
+}
+
+enum SourceType {
+  organization
+  portal
+  api
+  research_institution
+
+  @@map("source_type")
+}
+
+enum JobStatus {
+  queued
+  processing
+  completed
+  failed
+  expired
+
+  @@map("job_status")
+}
+
+// =============================================================
+// MODELS
+// =============================================================
+
+model Source {
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String     @db.VarChar(255)
+  acronym    String?    @db.VarChar(20)
+  sourceType SourceType @map("source_type")
+  website    String?    @db.VarChar(500)
+  sourceUrl  String?    @map("source_url") @db.Text
+  cnpj       String?    @db.VarChar(18)
+  isActive   Boolean    @default(true) @map("is_active")
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
+
+  datasets Dataset[]
+
+  @@index([acronym])
+  @@index([isActive])
+  @@map("sources")
+}
+
+model Theme {
+  id          Int     @id @default(autoincrement())
+  code        String  @unique @db.VarChar(30)
+  name        String  @db.VarChar(150)
+  description String? @db.Text
+  icon        String? @db.VarChar(100)
+  sortOrder   Int     @default(0) @map("sort_order") @db.SmallInt
+  parentId    Int?    @map("parent_id")
+
+  parent        Theme?         @relation("ThemeHierarchy", fields: [parentId], references: [id])
+  children      Theme[]        @relation("ThemeHierarchy")
+  datasetThemes DatasetTheme[]
+
+  @@index([parentId])
+  @@map("themes")
+}
+
+model Dataset {
+  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sourceId       String        @map("source_id") @db.Uuid
+  title          String        @db.VarChar(500)
+  slug           String        @unique @db.VarChar(255)
+  description    String?       @db.Text
+  status         DatasetStatus @default(draft)
+  geometryType   GeometryType? @map("geometry_type")
+  srid           Int           @default(4674)
+  ufScope        String[]      @map("uf_scope") @db.Char(2)
+  tags           String[]      @default([])
+  featured       Boolean       @default(false)
+  thumbnailUrl   String?       @map("thumbnail_url") @db.Text
+  dataStartYear  Int?          @map("data_start_year")
+  dataEndYear    Int?          @map("data_end_year")
+  wmsEnabled     Boolean       @default(true) @map("wms_enabled")
+  wfsEnabled     Boolean       @default(true) @map("wfs_enabled")
+  mapserverLayer String?       @map("mapserver_layer") @db.VarChar(255)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+
+  source             Source              @relation(fields: [sourceId], references: [id])
+  datasetThemes      DatasetTheme[]
+  versions           DatasetVersion[]
+  metadata           Metadata?
+  rasterLayers       RasterLayer[]
+  timeSeriesFeatures TimeSeriesFeature[]
+  accessLogs         AccessLog[]
+
+  @@index([status])
+  @@index([sourceId])
+  @@index([featured])
+  @@map("datasets")
+}
+
+model DatasetTheme {
+  datasetId String  @map("dataset_id") @db.Uuid
+  themeId   Int     @map("theme_id")
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  theme   Theme   @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@id([datasetId, themeId])
+  @@index([themeId])
+  @@map("dataset_themes")
+}
+
+model DatasetVersion {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  datasetId    String    @map("dataset_id") @db.Uuid
+  versionTag   String    @map("version_tag") @db.VarChar(50)
+  versionNum   Int       @default(1) @map("version_num")
+  isCurrent    Boolean   @default(true) @map("is_current")
+  featureCount BigInt    @default(0) @map("feature_count")
+  periodStart  DateTime? @map("period_start") @db.Date
+  periodEnd    DateTime? @map("period_end") @db.Date
+  sourceUrl    String?   @map("source_url") @db.Text
+  sourceFormat String?   @map("source_format") @db.VarChar(30)
+  changelog    String?   @db.Text
+  publishedAt  DateTime? @map("published_at") @db.Timestamptz()
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  dataset     Dataset      @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  geoFeatures GeoFeature[]
+  accessLogs  AccessLog[]
+
+  @@unique([datasetId, versionNum])
+  @@index([datasetId])
+  @@index([isCurrent])
+  @@map("dataset_versions")
+}
+
+model GeoFeature {
+  id         BigInt    @id @default(autoincrement())
+  versionId  String    @map("version_id") @db.Uuid
+  datasetId  String    @map("dataset_id") @db.Uuid
+  nome       String?   @db.VarChar(500)
+  codigo     String?   @db.VarChar(100)
+  dataRef    DateTime? @map("data_ref") @db.Date
+  areaHa     Decimal?  @map("area_ha") @db.Decimal(14, 4)
+  properties Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  version DatasetVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@index([datasetId])
+  @@index([nome])
+  @@index([codigo])
+  @@map("geo_features")
+}
+
+model TimeSeriesFeature {
+  id               BigInt   @id @default(autoincrement())
+  datasetId        String   @map("dataset_id") @db.Uuid
+  capturedAt       DateTime @map("captured_at") @db.Timestamptz()
+  properties       Json     @default("{}")
+  biome            String?  @db.VarChar(50)
+  uf               String?  @db.Char(2)
+  municipalityCode String?  @map("municipality_code") @db.VarChar(10)
+  ucId             String?  @map("uc_id") @db.Uuid
+  tiId             String?  @map("ti_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  dataset Dataset @relation(fields: [datasetId], references: [id])
+
+  @@index([datasetId])
+  @@index([capturedAt])
+  @@index([biome])
+  @@index([uf])
+  @@index([ucId])
+  @@index([tiId])
+  @@map("time_series_features")
+}
+
+model Metadata {
+  id                 String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  datasetId          String          @unique @map("dataset_id") @db.Uuid
+  language           String          @default("pt-BR") @db.VarChar(10)
+  license            String          @default("CC BY 4.0") @db.VarChar(100)
+  sourceUrl          String?         @map("source_url") @db.Text
+  lineage            String?         @db.Text
+  positionalAccuracy Decimal?        @map("positional_accuracy") @db.Decimal(10, 2)
+  spatialResolution  String?         @map("spatial_resolution") @db.VarChar(50)
+  updateFrequency    UpdateFrequency @default(irregular) @map("update_frequency")
+  referenceDate      DateTime?       @map("reference_date") @db.Date
+  referenceDateEnd   DateTime?       @map("reference_date_end") @db.Date
+  indeCompliant      Boolean         @default(false) @map("inde_compliant")
+  inspireCompliant   Boolean         @default(false) @map("inspire_compliant")
+  keywords           String[]        @default([])
+  contactName        String?         @map("contact_name") @db.VarChar(255)
+  contactEmail       String?         @map("contact_email") @db.VarChar(255)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@map("metadata")
+}
+
+model RasterLayer {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  datasetId     String   @map("dataset_id") @db.Uuid
+  tileX         Int      @map("tile_x")
+  tileY         Int      @map("tile_y")
+  overviewLevel Int      @default(0) @map("overview_level") @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@unique([datasetId, tileX, tileY, overviewLevel])
+  @@index([datasetId])
+  @@map("raster_layers")
+}
+
+model AnalysisJob {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  status       JobStatus @default(queued)
+  queryParams  Json      @map("query_params")
+  result       Json?
+  errorMessage String?   @map("error_message") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  startedAt    DateTime? @map("started_at") @db.Timestamptz()
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz()
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz()
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("analysis_jobs")
+}
+
+model AccessLog {
+  id         BigInt   @id @default(autoincrement())
+  datasetId  String?  @map("dataset_id") @db.Uuid
+  versionId  String?  @map("version_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  format     String?  @db.VarChar(30)
+  rowCount   Int?     @map("row_count")
+  durationMs Int?     @map("duration_ms")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  dataset Dataset?        @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  version DatasetVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  @@index([datasetId])
+  @@index([createdAt])
+  @@map("access_log")
+}
+
+model SchemaMigration {
+  version   BigInt   @id
+  name      String   @db.VarChar(255)
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz()
+  checksum  String?  @db.VarChar(64)
+
+  @@map("schema_migrations")
+}
