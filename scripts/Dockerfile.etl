@@ -1,0 +1,26 @@
+#  =============================================================
+# PNIG — scripts/Dockerfile.etl
+# Container Python para scripts de importação geoespacial
+# =============================================================
+ 
+FROM python:3.12-slim
+ 
+# Dependências de sistema necessárias para GDAL/GeoPandas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gdal-bin \
+    libgdal-dev \
+    libpq-dev \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+ 
+WORKDIR /app
+ 
+# Instalar dependências Python
+COPY scripts/requirements.etl.txt .
+RUN pip install --no-cache-dir -r requirements.etl.txt
+ 
+# Não copia o código — vem via volume
+CMD ["python", "--version"]
+ 

@@ -1,4 +1,4 @@
--- Extensions PostGIS
+-- Extensões PostGIS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
@@ -328,3 +328,47 @@ ALTER TABLE "access_log" ADD CONSTRAINT "access_log_dataset_id_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "access_log" ADD CONSTRAINT "access_log_version_id_fkey" FOREIGN KEY ("version_id") REFERENCES "dataset_versions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+-- Colunas geometry em geo_features
+ALTER TABLE "geo_features"
+  ADD COLUMN "geom"            geometry,
+  ADD COLUMN "geom_simplified" geometry,
+  ADD COLUMN "centroid"        geometry(Point, 4674);
+
+-- Coluna geometry em time_series_features
+ALTER TABLE "time_series_features"
+  ADD COLUMN "geom" geometry(Point, 4674);
+
+-- Coluna bbox em datasets
+ALTER TABLE "datasets"
+  ADD COLUMN "bbox" geometry(Polygon, 4674);
+
+-- Índices GIST/GIN/BRIN
+CREATE INDEX "geo_features_geom_idx"            ON "geo_features" USING GIST ("geom");
+CREATE INDEX "geo_features_geom_simplified_idx" ON "geo_features" USING GIST ("geom_simplified");
+CREATE INDEX "geo_features_centroid_idx"         ON "geo_features" USING GIST ("centroid");
+CREATE INDEX "geo_features_properties_idx"       ON "geo_features" USING GIN  ("properties");
+CREATE INDEX "ts_features_geom_idx"              ON "time_series_features" USING GIST ("geom");
+CREATE INDEX "ts_features_properties_idx"        ON "time_series_features" USING GIN  ("properties");
+CREATE INDEX "datasets_bbox_idx"                 ON "datasets" USING GIST ("bbox");
+CREATE INDEX "access_log_created_brin_idx"       ON "access_log" USING BRIN ("created_at");
+
+-- Trigger: calcular area_ha, centroid e geom_simplified na inserção
+CREATE OR REPLACE FUNCTION fn_geo_features_computed()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.geom IS NOT NULL THEN
+    NEW.area_ha = ROUND((ST_Area(NEW.geom::geography) / 10000.0)::numeric, 4);
+    NEW.centroid = ST_Centroid(NEW.geom);
+    IF NEW.geom_simplified IS NULL THEN
+      NEW.geom_simplified = ST_SimplifyPreserveTopology(NEW.geom, 0.0001);
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "trg_geo_features_computed"
+  BEFORE INSERT ON "geo_features"
+  FOR EACH ROW EXECUTE FUNCTION fn_geo_features_computed();

@@ -1,0 +1,12 @@
+# PNIG — scripts/requirements.etl.txt
+# Dependências Python para importação geoespacial
+
+geopandas==1.0.1
+shapely==2.1.0
+fiona==1.10.1
+pyproj==3.7.1
+psycopg2==2.9.10
+requests==2.32.3
+python-dotenv==1.0.1
+numpy==2.2.3
+pandas==2.2.3

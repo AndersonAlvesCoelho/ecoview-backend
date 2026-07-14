@@ -1,6 +1,11 @@
-version: '3.8'
+# =============================================================
+# PNIG — docker-compose.yml
+# Stack completo: NestJS + PostgreSQL/PostGIS + GeoServer + Python ETL
+# =============================================================
 
 services:
+
+  # ── API NestJS ─────────────────────────────────────────────
   api:
     build:
       context: .
@@ -12,13 +17,17 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     environment:
-      - DATABASE_URL=postgresql://postgres:16798577@ecoview_postgres:5432/ecoview_db
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@ecoview_postgres:5432/${DB_NAME}
       - NODE_ENV=${NODE_ENV}
+      - GEOSERVER_URL=http://ecoview_geoserver:8080/geoserver
+      - GEOSERVER_USER=${GEOSERVER_USER}
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
     depends_on:
       ecoview_postgres:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── PostgreSQL + PostGIS ───────────────────────────────────
   ecoview_postgres:
     image: postgis/postgis:16-3.4-alpine
     container_name: ecoview_db_dev
@@ -30,7 +39,6 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - ecoview_postgres_data:/var/lib/postgresql/data
-      - ./prisma/migrations/manual:/docker-entrypoint-initdb.d/manual
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -38,5 +46,56 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ── GeoServer ──────────────────────────────────────────────
+  ecoview_geoserver:
+    image: kartoza/geoserver:2.25.0
+    container_name: ecoview_geoserver_dev
+    ports:
+      - "${GEOSERVER_PORT}:8080"
+    volumes:
+      - ecoview_geoserver_data:/opt/geoserver/data_dir
+    environment:
+      - GEOSERVER_ADMIN_USER=${GEOSERVER_USER}
+      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_PASSWORD}
+      - INITIAL_MEMORY=256M
+      - MAXIMUM_MEMORY=1G
+      - STABLE_EXTENSIONS=importer
+      - DB_BACKEND=POSTGRES
+    depends_on:
+      ecoview_postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/geoserver/web/ | grep -q 200"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ── Python ETL ─────────────────────────────────────────────
+  # Uso: docker compose run --rm etl python scripts/import_layer.py --layer biomas
+  etl:
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.etl
+    container_name: ecoview_etl
+    env_file:
+      - .env 
+    volumes:
+      - .:/app                          # código e scripts
+      - ecoview_etl_data:/app/data      # cache de arquivos baixados
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@ecoview_postgres:5432/${DB_NAME}
+      - GEOSERVER_URL=http://ecoview_geoserver:8080/geoserver
+      - GEOSERVER_USER=${GEOSERVER_USER}
+      - GEOSERVER_PASSWORD=${GEOSERVER_PASSWORD}
+    depends_on:
+      ecoview_postgres:
+        condition: service_healthy
+    profiles:
+      - etl                             # só sobe com: docker compose --profile etl up
+
 volumes:
   ecoview_postgres_data:
+  ecoview_geoserver_data:
+  ecoview_etl_data:
