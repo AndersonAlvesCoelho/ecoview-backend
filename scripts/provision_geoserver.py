@@ -37,7 +37,7 @@ def parse_db_url(url: str) -> dict:
     host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
     return { "host": host, "port": port, "user": user, "password": password, "dbname": dbname }
 
-WORKSPACE = "pnig"
+WORKSPACE = "ecoview"
 STORE     = "ecoview_postgis"
 AUTH      = HTTPBasicAuth(GEOSERVER_USER, GEOSERVER_PASS)
 HEADERS   = { "Content-Type": "application/json" }
@@ -80,7 +80,7 @@ def wait_geoserver(retries: int = 20, delay: int = 5):
 # =============================================================
 
 def create_workspace():
-    log("Criando workspace pnig...", "STEP")
+    log("Criando workspace ecoview...", "STEP")
     r = req("get", f"workspaces/{WORKSPACE}.json", expected=(200, 404))
     if r.status_code == 200:
         log(f"Workspace '{WORKSPACE}' já existe", "OK")
@@ -89,7 +89,7 @@ def create_workspace():
     req("post", "workspaces.json", json={
         "workspace": {
             "name": WORKSPACE,
-            "uri":  "http://pnig.gov.br"
+            "uri":  "http://ecoview.gov.br"
         }
     })
     log(f"Workspace '{WORKSPACE}' criado", "OK")

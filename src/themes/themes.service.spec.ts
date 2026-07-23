@@ -4,10 +4,11 @@ import { ThemesService } from './themes.service';
 
 const mockThemes = [
   {
-    id:       1,
-    code:     'meio_ambiente',
-    name:     'Meio Ambiente',
-    icon:     null,
+    id: 1,
+    code: 'meio_ambiente',
+    name: 'Meio Ambiente',
+    icon: null,
+    theme: null,
     sortOrder: 1,
     parentId: null,
     datasetThemes: [
@@ -16,24 +17,24 @@ const mockThemes = [
     ],
     children: [
       {
-        id:       2,
-        code:     'queimadas',
-        name:     'Queimadas',
-        icon:     null,
+        id: 2,
+        code: 'queimadas',
+        name: 'Queimadas',
+        icon: null,
+        theme: null,
         datasetThemes: [{ dataset: { status: 'published' } }],
       },
     ],
   },
   {
-    id:       3,
-    code:     'limites',
-    name:     'Limites Territoriais',
-    icon:     null,
+    id: 3,
+    code: 'limites',
+    name: 'Limites Territoriais',
+    icon: null,
+    theme: null,
     sortOrder: 2,
     parentId: null,
-    datasetThemes: [
-      { dataset: { status: 'published' } },
-    ],
+    datasetThemes: [{ dataset: { status: 'published' } }],
     children: [],
   },
 ];

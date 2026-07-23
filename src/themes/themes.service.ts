@@ -1,4 +1,3 @@
-// src/themes/themes.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -34,12 +33,14 @@ export class ThemesService {
       code: theme.code,
       name: theme.name,
       icon: theme.icon,
+      color: theme.color,
       datasetCount: theme.datasetThemes.length,
       children: theme.children.map((child) => ({
         id: child.id,
         code: child.code,
         name: child.name,
         icon: child.icon,
+        color: child.color,
         datasetCount: child.datasetThemes.length,
       })),
     }));

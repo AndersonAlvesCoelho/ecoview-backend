@@ -18,10 +18,10 @@ Este guia explica como configurar o GeoServer, importar camadas e adicionar novo
 
 | Layer | Workspace | Tipo | Descrição |
 |---|---|---|---|
-| `pnig:features` | pnig | SQL View genérica | Todas as features — filtrar por `dataset_slug` |
-| `pnig:biomas` | pnig | SQL View | Biomas e Sistema Costeiro-Marinho IBGE 2025 |
-| `pnig:estados` | pnig | SQL View | Unidades da Federação IBGE 2025 |
-| `pnig:municipios` | pnig | SQL View | Municípios do Brasil IBGE 2025 |
+| `ecoview:features` | ecoview | SQL View genérica | Todas as features — filtrar por `dataset_slug` |
+| `ecoview:biomas` | ecoview | SQL View | Biomas e Sistema Costeiro-Marinho IBGE 2025 |
+| `ecoview:estados` | ecoview | SQL View | Unidades da Federação IBGE 2025 |
+| `ecoview:municipios` | ecoview | SQL View | Municípios do Brasil IBGE 2025 |
 
 ---
 
@@ -50,8 +50,8 @@ Acesse `http://localhost:8080/geoserver` com as credenciais do `.env`.
 #### 1. Criar Workspace
 
 - Menu lateral → **Workspaces** → **Add new workspace**
-- Name: `pnig`
-- Namespace URI: `http://pnig.gov.br`
+- Name: `ecoview`
+- Namespace URI: `http://ecoview.gov.br`
 - Marcar **Default Workspace**
 - Clique **Submit**
 
@@ -61,7 +61,7 @@ Acesse `http://localhost:8080/geoserver` com as credenciais do `.env`.
 
 | Campo | Valor |
 |---|---|
-| Workspace | pnig |
+| Workspace | ecoview |
 | Data Source Name | ecoview_postgis |
 | Host | ecoview_postgres |
 | Port | 5432 |
@@ -76,7 +76,7 @@ Acesse `http://localhost:8080/geoserver` com as credenciais do `.env`.
 
 Para cada layer abaixo:
 - Menu lateral → **Layers** → **Add new layer**
-- Selecione `pnig:ecoview_postgis`
+- Selecione `ecoview:ecoview_postgis`
 - Clique **Configure new SQL view...**
 
 ##### View: `features` (genérica)

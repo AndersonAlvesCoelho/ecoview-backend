@@ -164,7 +164,7 @@ npx prisma migrate deploy
 docker compose run --rm etl python scripts/provision_geoserver.py
 ```
 
-Cria automaticamente o workspace `pnig`, store `ecoview_postgis` e publica as SQL Views.
+Cria automaticamente o workspace `ecoview`, store `ecoview_postgis` e publica as SQL Views.
 
 ### 7. Importar as camadas base
 
@@ -211,8 +211,8 @@ Login: `admin` / senha definida no `.env`
 #### WMS — Visualização de mapas
 
 ```
-http://localhost:8080/geoserver/pnig/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap
-  &LAYERS=pnig:biomas
+http://localhost:8080/geoserver/ecoview/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap
+  &LAYERS=ecoview:biomas
   &BBOX=-73.98,-33.75,-28.84,5.27
   &WIDTH=800&HEIGHT=600
   &SRS=EPSG:4674
@@ -222,8 +222,8 @@ http://localhost:8080/geoserver/pnig/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMa
 #### WFS — Download de dados
 
 ```
-http://localhost:8080/geoserver/pnig/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature
-  &TYPENAMES=pnig:biomas
+http://localhost:8080/geoserver/ecoview/wfs?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature
+  &TYPENAMES=ecoview:biomas
   &OUTPUTFORMAT=application/json
 ```
 

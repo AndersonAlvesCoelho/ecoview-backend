@@ -54,7 +54,7 @@ export class DatasetsService {
             select: {
               isPrimary: true,
               theme: {
-                select: { id: true, code: true, name: true, icon: true },
+                select: { id: true, code: true, name: true, icon: true, theme: true },
               },
             },
             orderBy: { isPrimary: 'desc' },
@@ -195,7 +195,8 @@ export class DatasetsService {
   //  Formata o dataset para resposta
   formatDataset(dataset: any) {
     const geoserverUrl =
-      process.env.GEOSERVER_URL ?? 'http://localhost:8080/geoserver';
+      process.env.GEOSERVER_PUBLIC_URL ?? 'http://localhost:8080/geoserver';
+
     const layerName = dataset.mapserverLayer ?? dataset.slug;
     const currentVersion =
       dataset.versions?.find((v: any) => v.isCurrent) ?? dataset.versions?.[0];
@@ -216,15 +217,15 @@ export class DatasetsService {
       wms: dataset.wmsEnabled
         ? {
             enabled: true,
-            url: `${geoserverUrl}/pnig/wms`,
-            layer: `pnig:${layerName}`,
+            url: `${geoserverUrl}/ecoview/wms`,
+            layer: `ecoview:${layerName}`,
           }
         : null,
       wfs: dataset.wfsEnabled
         ? {
             enabled: true,
-            url: `${geoserverUrl}/pnig/wfs`,
-            layer: `pnig:${layerName}`,
+            url: `${geoserverUrl}/ecoview/wfs`,
+            layer: `ecoview:${layerName}`,
           }
         : null,
       source: dataset.source
@@ -241,6 +242,7 @@ export class DatasetsService {
           code: dt.theme.code,
           name: dt.theme.name,
           icon: dt.theme.icon,
+          theme: dt.theme.theme,
           isPrimary: dt.isPrimary,
         })) ?? [],
       currentVersion: currentVersion

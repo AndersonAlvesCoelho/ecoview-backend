@@ -1,6 +1,6 @@
 // =============================================================
-// PNIG — prisma/schema.prisma — Prisma 7
-// Extensões PostGIS gerenciadas via migration manual (0001)
+// EcoView — prisma/schema.prisma — Prisma 7
+// Campos PostGIS declarados com Unsupported() para evitar drift
 // =============================================================
 
 generator client {
@@ -98,6 +98,7 @@ model Theme {
   name        String  @db.VarChar(150)
   description String? @db.Text
   icon        String? @db.VarChar(100)
+  color       String? @db.VarChar(7) // NOVO — cor hex ex: #006633
   sortOrder   Int     @default(0) @map("sort_order") @db.SmallInt
   parentId    Int?    @map("parent_id")
 
@@ -122,6 +123,7 @@ model Dataset {
   tags           String[]      @default([])
   featured       Boolean       @default(false)
   thumbnailUrl   String?       @map("thumbnail_url") @db.Text
+  color          String?       @db.VarChar(7) // NOVO — cor individual da camada
   dataStartYear  Int?          @map("data_start_year")
   dataEndYear    Int?          @map("data_end_year")
   wmsEnabled     Boolean       @default(true) @map("wms_enabled")
@@ -129,6 +131,9 @@ model Dataset {
   mapserverLayer String?       @map("mapserver_layer") @db.VarChar(255)
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Campos PostGIS — adicionados via migration manual, declarados aqui para evitar drift
+  bbox Unsupported("geometry(Polygon, 4674)")?
 
   source             Source              @relation(fields: [sourceId], references: [id])
   datasetThemes      DatasetTheme[]
@@ -193,6 +198,11 @@ model GeoFeature {
   properties Json      @default("{}")
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
+  // Campos PostGIS — adicionados via migration manual, declarados aqui para evitar drift
+  geom           Unsupported("geometry")?
+  geomSimplified Unsupported("geometry")?              @map("geom_simplified")
+  centroid       Unsupported("geometry(Point, 4674)")?
+
   version DatasetVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@index([versionId])
@@ -213,6 +223,9 @@ model TimeSeriesFeature {
   ucId             String?  @map("uc_id") @db.Uuid
   tiId             String?  @map("ti_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Campo PostGIS — adicionado via migration manual
+  geom Unsupported("geometry(Point, 4674)")?
 
   dataset Dataset @relation(fields: [datasetId], references: [id])
 

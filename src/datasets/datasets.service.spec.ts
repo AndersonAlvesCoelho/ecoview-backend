@@ -37,6 +37,7 @@ const mockDataset = {
         code: 'meio_ambiente',
         name: 'Meio Ambiente',
         icon: null,
+        theme: null,
       },
     },
   ],
@@ -160,7 +161,7 @@ describe('DatasetsService', () => {
       const dataset = result.data[0];
 
       expect(dataset.wms).not.toBeNull();
-      expect(dataset.wms?.layer).toBe('pnig:biomas_ibge_2025');
+      expect(dataset.wms?.layer).toBe('ecoview:biomas_ibge_2025');
       expect(dataset.wfs).not.toBeNull();
     });
   });
